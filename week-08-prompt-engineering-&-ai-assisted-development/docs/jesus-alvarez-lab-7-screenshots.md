@@ -10,6 +10,9 @@
 ## n8n Test Chain Pipeline:
 <img width="1758" height="1000" alt="screenshots:n8n-chain-pipeline" src="https://github.com/user-attachments/assets/33900c68-1f83-4e66-85a3-7719e31ec559" />
 
+## Copilot Working:
+<img width="562" height="444" alt="screenshots:copilot-working" src="https://github.com/user-attachments/assets/c4cb309d-c376-412e-a629-5e655767abdb" />
+
 ## Copilot Instructions: 
 <img width="1800" height="1125" alt="screenshots:copilot-instructions" src="https://github.com/user-attachments/assets/08a405ea-f366-492d-bff6-3bdaec2328a6" />
 
