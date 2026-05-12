@@ -7,7 +7,7 @@
 ## Chain 3 - Response Recommender: 
 <img width="1797" height="1002" alt="screenshots:chain3-recommender" src="https://github.com/user-attachments/assets/fd7a1019-60e6-43be-8f89-4207d61d1944" />
 
-## Test Chain Pipeline:
+## n8n Test Chain Pipeline:
 <img width="1758" height="1000" alt="screenshots:n8n-chain-pipeline" src="https://github.com/user-attachments/assets/33900c68-1f83-4e66-85a3-7719e31ec559" />
 
 ## Copilot Instructions: 
