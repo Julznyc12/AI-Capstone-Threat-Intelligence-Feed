@@ -19,5 +19,5 @@
 ## Checkpoint 2 Audit:
 <img width="702" height="931" alt="screenshots:capstone-audit-report" src="https://github.com/user-attachments/assets/1ba3bfc5-274f-457e-a218-768059800f23" />
 
-## Copilot Artifiact: 
+## Copilot Artifact: 
 <img width="497" height="914" alt="screenshots:copilot-artifact" src="https://github.com/user-attachments/assets/3f856fca-1c55-4b90-8cff-b66a57e3b433" />
