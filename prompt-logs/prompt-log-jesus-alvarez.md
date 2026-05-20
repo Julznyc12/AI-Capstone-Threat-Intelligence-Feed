@@ -1,13 +1,13 @@
 # Prompt Log - Jesus Alvarez
 
 **Project:** Threat Intelligence Feed Dashboard  
-**Team:** Threat Intelligence Feed Dashboard 
+**Team:** Threat Intelligence Feed Dashboard  
 **My Component:** Component 1 - Feed Collector  
 **AI Tools Used:** GitHub Copilot, ChatGPT
 
 ---
 
-## How to Use This Log
+# How to Use This Log
 
 This file tracks significant AI interactions used during development of the capstone project.
 
@@ -46,3 +46,115 @@ I reviewed the generated recommendations and compared them against the actual pr
 
 **What I learned:**  
 I learned that AI tools are useful for identifying integration risks and organizing project planning, but outputs still need to be validated carefully against the real implementation.
+
+---
+
+## [2026-05-18] - Generating End-to-End Test Data
+
+**Context:**  
+I was preparing a realistic cybersecurity threat intelligence record to test the complete workflow for Checkpoint 2 integration testing.
+
+**Prompt:**  
+> Generate a realistic cybersecurity threat intelligence test record that can be used for end-to-end workflow testing in a threat intelligence dashboard project.
+
+**Result:**  
+The AI generated a realistic cybersecurity news record containing:
+- threat title
+- source
+- URL
+- summary
+- timestamps
+- threat context
+
+The generated record was later used during end-to-end workflow validation across all four project components.
+
+**Evaluation:**  
+The generated test data was realistic and useful for validating workflow automation and Airtable integration.
+
+**What I changed:**  
+I adjusted some field formatting to match the Airtable schema and workflow field names used by the team.
+
+**What I learned:**  
+I learned that AI-generated test data can accelerate integration testing and help simulate realistic production workflows.
+
+---
+
+## [2026-05-18] - Airtable Field Mapping Validation
+
+**Context:**  
+I was reviewing Airtable field consistency between AI Core outputs and Specialist workflow inputs after identifying possible schema inconsistencies during testing.
+
+**Prompt:**  
+> Help identify possible Airtable field mismatches between AI enrichment workflows and relevance scoring workflows.
+
+**Result:**  
+The AI highlighted several schema areas that required additional validation, including:
+- status labels
+- IOC field naming
+- confidence score formatting
+- recommendation field mappings
+
+**Evaluation:**  
+The output helped identify areas where naming consistency could become a future integration problem.
+
+**What I changed:**  
+I reviewed and validated the Airtable schema manually and standardized several workflow field references.
+
+**What I learned:**  
+I learned that maintaining consistent schema conventions is critical when multiple workflows and AI systems interact with the same database.
+
+---
+
+## [2026-05-19] - Debugging Workflow Automation
+
+**Context:**  
+During end-to-end testing, I needed to confirm whether records written by Component 1 were automatically triggering AI Core processing.
+
+**Prompt:**  
+> Help troubleshoot why an Airtable-triggered AI workflow may not automatically process new records during integration testing.
+
+**Result:**  
+The AI suggested validating:
+- Airtable trigger conditions
+- status labels
+- workflow timing
+- field mappings
+- automation sequencing
+
+The troubleshooting process helped confirm that the ingestion-to-AI-Core handoff was functioning correctly during testing.
+
+**Evaluation:**  
+The troubleshooting guidance was useful for validating automation behavior and workflow reliability.
+
+**What I changed:**  
+I reviewed workflow trigger conditions and confirmed records were correctly moving into AI processing workflows.
+
+**What I learned:**  
+I learned how important workflow orchestration and status consistency are for reliable automation.
+
+---
+
+## [2026-05-20] - Re-Running the Capstone Audit
+
+**Context:**  
+I reran the Checkpoint 2 capstone audit after completing end-to-end testing to evaluate current project readiness and remaining integration gaps.
+
+**Prompt:**  
+> Review the current capstone project state and generate a Checkpoint 2 readiness assessment with integration gaps, schema risks, and recommended fixes.
+
+**Result:**  
+The AI generated an updated readiness assessment containing:
+- working components
+- validated workflow handoffs
+- schema consistency risks
+- recommended fix order
+- edge-case testing recommendations
+
+**Evaluation:**  
+The audit helped summarize the project’s current integration state and identify remaining reliability risks before final submission.
+
+**What I changed:**  
+I manually reviewed the generated assessment and adjusted several sections to better reflect the actual state of the workflows and automation testing.
+
+**What I learned:**  
+I learned that AI-assisted audits are useful for organizing integration testing and identifying operational risks, but human validation is still necessary to ensure technical accuracy.
