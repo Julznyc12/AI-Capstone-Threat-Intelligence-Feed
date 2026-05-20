@@ -3,7 +3,7 @@
 **Project:** Threat Intelligence Feed Dashboard  
 **Team:** Threat Intelligence Feed Dashboard  
 **My Component:** Component 1 - Feed Collector  
-**AI Tools Used:** GitHub Copilot
+**AI Tools Used:** GitHub Copilot, ChatGPT
 
 ---
 
@@ -158,3 +158,58 @@ I manually reviewed the generated assessment and adjusted several sections to be
 
 **What I learned:**  
 I learned that AI-assisted audits are useful for organizing integration testing and identifying operational risks, but human validation is still necessary to ensure technical accuracy.
+
+---
+
+## [2026-05-20] - n8n Error Handling Logic
+
+**Context:**  
+I was improving Component 1 of the Threat Intelligence Feed Dashboard by adding error handling and validation logic to the n8n ingestion workflow. The goal was to prevent malformed or incomplete records from entering the main AI pipeline.
+
+**Prompt:**  
+> Help me create an IF node in n8n that validates whether records contain required fields like title, source, url, and raw_summary before entering Airtable.
+
+**Result:**  
+The AI helped design an IF node after the Merge node that validates required fields using “is not empty” conditions. Invalid records are automatically routed into a separate Airtable error-handling node.
+
+**Evaluation:**  
+The solution worked correctly and allowed the workflow to separate valid records from malformed records automatically. The validation logic improved reliability and demonstrated edge-case handling for Checkpoint 2.
+
+**What I changed:**  
+I added validation conditions for:
+- title
+- source
+- url
+- raw_summary
+
+I also added an Airtable error logging node that creates records with:
+- Error Reason
+- Current Status = Error
+
+**What I learned:**  
+I learned how to implement validation-based branching in n8n workflows and how error handling can improve automation stability in AI pipelines.
+
+---
+
+## [2026-05-20] - Generating Error Test Records
+
+**Context:**  
+I needed to test whether the new error handling branch correctly detected malformed data and routed failed records into Airtable error logs.
+
+**Prompt:**  
+> Help me generate a bad test record that will fail the IF node validation and trigger the error handling path.
+
+**Result:**  
+The AI suggested intentionally leaving the `raw_summary` field blank inside one normalized feed record to simulate malformed data.
+
+**Evaluation:**  
+The test worked successfully. The IF node routed the invalid record into the false branch, and Airtable created an error record with an error message and Error status.
+
+**What I changed:**  
+I temporarily modified one normalized record so:
+- raw_summary = ""
+
+This triggered the error handling workflow during execution.
+
+**What I learned:**  
+I learned how to test edge-case behavior and validate that malformed records are safely handled instead of entering the production pipeline.
