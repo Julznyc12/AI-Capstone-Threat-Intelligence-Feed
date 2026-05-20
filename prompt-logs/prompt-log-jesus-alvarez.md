@@ -3,7 +3,7 @@
 **Project:** Threat Intelligence Feed Dashboard  
 **Team:** Threat Intelligence Feed Dashboard  
 **My Component:** Component 1 - Feed Collector  
-**AI Tools Used:** GitHub Copilot, ChatGPT
+**AI Tools Used:** GitHub Copilot
 
 ---
 
