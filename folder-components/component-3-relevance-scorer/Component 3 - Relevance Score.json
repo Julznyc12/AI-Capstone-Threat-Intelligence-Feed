@@ -1,0 +1,1548 @@
+{
+  "name": "Component 3 - Relevance Scorer (post lab 9 may 20 update)",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appyw42e9zro6GoO1",
+          "mode": "list",
+          "cachedResultName": "Threat Intelligence Dashboard",
+          "cachedResultUrl": "https://airtable.com/appyw42e9zro6GoO1"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblz4p4q7Jzolwakx",
+          "mode": "list",
+          "cachedResultName": "Threats",
+          "cachedResultUrl": "https://airtable.com/appyw42e9zro6GoO1/tblz4p4q7Jzolwakx"
+        },
+        "filterByFormula": "AND({Enriched}=1, {Scored}=0)",
+        "returnAll": false,
+        "limit": 45,
+        "options": {},
+        "sort": {
+          "property": []
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -1264,
+        208
+      ],
+      "id": "d0f66049-35a6-47ff-9d8d-090fa16083db",
+      "name": "Search records",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "onKUHqy7AgUSVaRA",
+          "name": "Airtable Personal Access Token account 13"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "df44634e-7d86-4ea9-9b01-7d7d42e0817f",
+              "name": "record_id",
+              "value": "={{$json[\"id\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "35009efa-e139-4fda-8ab5-14fbdaf6a763",
+              "name": "Title",
+              "value": "={{$json[\"fields\"][\"Title\"] || \"Untitled threat\"}}",
+              "type": "string"
+            },
+            {
+              "id": "7f62f006-aeae-4b33-9d45-cf4bda89d053",
+              "name": "Raw Summary",
+              "value": "={{$json[\"fields\"][\"Raw Summary\"] || \"No summary provided\"}}",
+              "type": "string"
+            },
+            {
+              "id": "e4a512a1-aa68-4123-8636-d0a14136adbf",
+              "name": "severity",
+              "value": "={{$json[\"fields\"][\"Severity\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "0788ab96-1218-4be5-ba36-df8185621340",
+              "name": "affected_software",
+              "value": "={{$json[\"fields\"][\"Affected Software\"] || \"Unknown\"}}",
+              "type": "string"
+            },
+            {
+              "id": "3e684eee-5fc3-4e5f-a677-892c75717d6f",
+              "name": "IOCs",
+              "value": "={{$json[\"fields\"][\"IOCs\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "8b9db752-e4dc-46a3-827b-2dc421f48202",
+              "name": "attack_type",
+              "value": "={{$json[\"fields\"][\"Attack Type\"] || \"Unknown\"}}",
+              "type": "string"
+            },
+            {
+              "id": "2e5abbd3-9d9e-4227-af97-775a37a538e3",
+              "name": "threat_context",
+              "value": "=Title: {{$json[\"fields\"][\"Title\"] || \"Untitled threat\"}}\nSummary: {{$json[\"fields\"][\"Raw Summary\"] || \"No summary provided\"}}\nSeverity: {{$json[\"fields\"][\"Severity\"] || \"Unknown\"}}\nAffected Software: {{$json[\"fields\"][\"Affected Software\"] || \"Unknown\"}}\nAttack Type: {{$json[\"fields\"][\"Attack Type\"] || \"Unknown\"}}\nIOCs: {{$json[\"fields\"][\"IOCs\"] || \"None\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -784,
+        224
+      ],
+      "id": "fad95cbf-c856-4903-a7f6-e63de6c0505b",
+      "name": "Edit Fields",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"llama-3.3-70b-versatile\",\n  temperature: 0.2,\n\n  messages: [\n    {\n      role: \"system\",\n      content: \"You are a cybersecurity relevance scoring assistant. Compare a threat to an organization's technology stack and determine how relevant it is. Return only valid JSON. Do not use markdown.\\n\\nOnly match technologies if the threat directly targets, affects, exploits, or significantly relates to that technology.\\n\\nDo not match technologies based on vague or generic mentions.\\n\\nIf no technologies are clearly affected, set relevance_score between 0-30 and relevance_level to Low.\\n\\nIncrease relevance if:\\n- ransomware is involved\\n- remote code execution is involved\\n- privilege escalation is involved\\n- active exploitation is mentioned\\n- severity is Critical or High\\n- critical infrastructure is targeted\\n\\nPresence of valid IOCs increases operational relevance.\"\n    },\n\n    {\n      role: \"user\",\n\n      content:\n        \"Technology stack:\\n\" + $json.tech_stack +\n\n        \"\\n\\nThreat:\\n\" + $json.threat_context +\n\n        \"\\n\\nScore relevance from 0 to 100.\" +\n\n        \"\\nRules:\" +\n        \"\\n75-100 = High relevance\" +\n        \"\\n40-74 = Medium relevance\" +\n        \"\\n0-39 = Low relevance\" +\n\n        \"\\n\\nReturn ONLY valid JSON with exactly these keys:\" +\n        \"\\nrelevance_score, relevance_level, matched_technologies, reason\" +\n\n        \"\\n\\nExample:\" +\n        \"\\n{\\\"relevance_score\\\": 75, \\\"relevance_level\\\": \\\"High\\\", \\\"matched_technologies\\\": [\\\"Apache HTTP Server\\\"], \\\"reason\\\": \\\"The threat directly affects Apache, which is in the technology stack.\\\"}\"\n    }\n  ]\n}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -384,
+        224
+      ],
+      "id": "663dad09-d2ab-4d28-9ff0-90cc2c7d6c44",
+      "name": "Groq Relevance Scoring ",
+      "alwaysOutputData": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "HtjZvxzAUm7ocZJf",
+          "name": "Groq API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7efda70a-7c82-43fe-943f-ab52acabc612",
+              "name": "tech_stack",
+              "value": "Windows Server, Apache HTTP Server, Python, Ubuntu Linux Servers, MySQL, Microsoft 365, Splunk, Suricata, VSCode, PAN-OS, Google Cloud Platform, Enterprise IoT Devices, AI Security Tools",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -576,
+        224
+      ],
+      "id": "966de671-5fbe-4d90-8269-fba9b60a5462",
+      "name": "tech_stack"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1040,
+        208
+      ],
+      "id": "629ff871-ec78-49fb-83d5-e0999a7da600",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        336
+      ],
+      "id": "34f37fa6-37cd-425d-b8d0-d602b981cff4",
+      "name": "Wait",
+      "webhookId": "58e154e5-e27d-4567-8e2e-e42526f89cf1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appyw42e9zro6GoO1",
+          "mode": "list",
+          "cachedResultName": "Threat Intelligence Dashboard",
+          "cachedResultUrl": "https://airtable.com/appyw42e9zro6GoO1"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblz4p4q7Jzolwakx",
+          "mode": "list",
+          "cachedResultName": "Threats",
+          "cachedResultUrl": "https://airtable.com/appuZo2Kog8iaNlfF/tblz4p4q7Jzolwakx"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Relevance Level": "={{ $json.relevance_level }}",
+            "Matched Tech": "={{ $json.matched_tech || \"none\" }}",
+            "Relevance Reason": "={{ $json.relevance_reason }}",
+            "Scored At": "={{ $json.scored_at }}",
+            "id": "={{ $json.record_id }}",
+            "Relevance Score": "={{$json.relevance_score}}",
+            "Scored": true,
+            "Current Status": "Scored",
+            "Scored By": "={{ $json.scored_by }}",
+            "Error Reason": "={{ $json.error_reason || \"\" }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Published Date",
+              "displayName": "Published Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Raw Summary",
+              "displayName": "Raw Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Created Time",
+              "displayName": "Created Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched",
+              "displayName": "Enriched",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Critical",
+                  "value": "Critical"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                },
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "Unknown",
+                  "value": "Unknown"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Affected Software",
+              "displayName": "Affected Software",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Attack Type",
+              "displayName": "Attack Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "IOCs",
+              "displayName": "IOCs",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched At",
+              "displayName": "Enriched At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched By",
+              "displayName": "Enriched By",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scored",
+              "displayName": "Scored",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Relevance Score",
+              "displayName": "Relevance Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Relevance Level",
+              "displayName": "Relevance Level",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Matched Tech",
+              "displayName": "Matched Tech",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Relevance Reason",
+              "displayName": "Relevance Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Scored At",
+              "displayName": "Scored At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Scored By",
+              "displayName": "Scored By",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Current Status",
+              "displayName": "Current Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "New",
+                  "value": "New"
+                },
+                {
+                  "name": "Enriched",
+                  "value": "Enriched"
+                },
+                {
+                  "name": "Scored",
+                  "value": "Scored"
+                },
+                {
+                  "name": "Error",
+                  "value": "error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Calculation",
+              "displayName": "Calculation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        320
+      ],
+      "id": "11c2e0f9-daa3-4900-b15a-24947eaa573d",
+      "name": "Update record",
+      "alwaysOutputData": false,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "onKUHqy7AgUSVaRA",
+          "name": "Airtable Personal Access Token account 13"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let raw = $input.item.json.choices?.[0]?.message?.content || \"\";\n\nraw = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(raw);\n} catch (error) {\n  parsed = {\n    relevance_score: 0,\n\n    relevance_level: \"Low\",\n\n    matched_technologies: [],\n\n    reason: \"Failed to parse model response. Raw output: \" + raw\n  };\n}\n\nreturn {\n  json: {\n    record_id: $(\"Edit Fields\").item.json.record_id,\n\n    relevance_score: Number(parsed.relevance_score) || 0,\n\n    relevance_level: parsed.relevance_level || \"Low\",\n\n    matched_tech: Array.isArray(parsed.matched_technologies)\n      ? parsed.matched_technologies.join(\", \")\n      : String(parsed.matched_technologies || \"none\"),\n\n    relevance_reason:\n      parsed.reason || \"No reason returned.\",\n\n    scored_at: new Date().toISOString(),\n\n    scored_by: \"Groq llama-3.3-70b-versatile\",\n\n    scored: true,\n\n    current_status: \"Scored\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        320
+      ],
+      "id": "a9ddc9e9-b686-4483-9f2f-e6a3a4ded1e2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 1,
+              "triggerAtMinute": 58
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1568,
+        208
+      ],
+      "id": "59744242-5d1d-4987-80b8-519940d684fe",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appyw42e9zro6GoO1",
+          "mode": "list",
+          "cachedResultName": "Threat Intelligence Dashboard",
+          "cachedResultUrl": "https://airtable.com/appyw42e9zro6GoO1"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblz4p4q7Jzolwakx",
+          "mode": "list",
+          "cachedResultName": "Threats",
+          "cachedResultUrl": "https://airtable.com/appyw42e9zro6GoO1/tblz4p4q7Jzolwakx"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Current Status": "Error",
+            "Error Reason": "={{ \"API Error - \" + ($json.error?.message || $json.message || \"Groq request failed\") }}",
+            "id": "={{$(\"Edit Fields\").item.json.record_id}}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Published Date",
+              "displayName": "Published Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Raw Summary",
+              "displayName": "Raw Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Created Time",
+              "displayName": "Created Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched",
+              "displayName": "Enriched",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Critical",
+                  "value": "Critical"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                },
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "Unknown",
+                  "value": "Unknown"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Affected Software",
+              "displayName": "Affected Software",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Attack Type",
+              "displayName": "Attack Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "IOCs",
+              "displayName": "IOCs",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched At",
+              "displayName": "Enriched At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched By",
+              "displayName": "Enriched By",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scored",
+              "displayName": "Scored",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Relevance Score",
+              "displayName": "Relevance Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Relevance Level",
+              "displayName": "Relevance Level",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Matched Tech",
+              "displayName": "Matched Tech",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Relevance Reason",
+              "displayName": "Relevance Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scored At",
+              "displayName": "Scored At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scored By",
+              "displayName": "Scored By",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Status",
+              "displayName": "Current Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "New",
+                  "value": "New"
+                },
+                {
+                  "name": "Enriched",
+                  "value": "Enriched"
+                },
+                {
+                  "name": "Scored",
+                  "value": "Scored"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Calculation",
+              "displayName": "Calculation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        32
+      ],
+      "id": "ff2b8cb3-a40f-41ed-b4ea-b64aa2ceeae8",
+      "name": "Handle Groq API Error",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "onKUHqy7AgUSVaRA",
+          "name": "Airtable Personal Access Token account 13"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appyw42e9zro6GoO1",
+          "mode": "list",
+          "cachedResultName": "Threat Intelligence Dashboard",
+          "cachedResultUrl": "https://airtable.com/appyw42e9zro6GoO1"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblz4p4q7Jzolwakx",
+          "mode": "list",
+          "cachedResultName": "Threats",
+          "cachedResultUrl": "https://airtable.com/appyw42e9zro6GoO1/tblz4p4q7Jzolwakx"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Current Status": "Error",
+            "Error Reason": "={{ \"Airtable Update Failed - \" + ($json.error?.message || $json.message || \"Airtable update failed\") }}",
+            "id": "={{ $(\"Edit Fields\").item.json.record_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Published Date",
+              "displayName": "Published Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Raw Summary",
+              "displayName": "Raw Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Created Time",
+              "displayName": "Created Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched",
+              "displayName": "Enriched",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Critical",
+                  "value": "Critical"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                },
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "Unknown",
+                  "value": "Unknown"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Affected Software",
+              "displayName": "Affected Software",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Attack Type",
+              "displayName": "Attack Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "IOCs",
+              "displayName": "IOCs",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched At",
+              "displayName": "Enriched At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Enriched By",
+              "displayName": "Enriched By",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scored",
+              "displayName": "Scored",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Relevance Score",
+              "displayName": "Relevance Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Relevance Level",
+              "displayName": "Relevance Level",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Matched Tech",
+              "displayName": "Matched Tech",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Relevance Reason",
+              "displayName": "Relevance Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scored At",
+              "displayName": "Scored At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scored By",
+              "displayName": "Scored By",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Status",
+              "displayName": "Current Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "New",
+                  "value": "New"
+                },
+                {
+                  "name": "Enriched",
+                  "value": "Enriched"
+                },
+                {
+                  "name": "Scored",
+                  "value": "Scored"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Calculation",
+              "displayName": "Calculation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        112
+      ],
+      "id": "cf7eb6c1-fca1-40c7-97a2-aa721ee66802",
+      "name": "Handle Airtable Update Error",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "onKUHqy7AgUSVaRA",
+          "name": "Airtable Personal Access Token account 13"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "22ec2273-dd63-434d-b315-204e31c64983",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -192,
+        224
+      ],
+      "id": "63cb8821-ac7c-4c31-b495-98738905cf96",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "46c277fa-40b6-49bc-873c-902fcb0b4c26",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        432,
+        320
+      ],
+      "id": "223c47d3-1ddc-4f7b-822d-307cf230d12e",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "tech_stack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tech_stack": {
+      "main": [
+        [
+          {
+            "node": "Groq Relevance Scoring ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Relevance Scoring ": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Handle Groq API Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Handle Airtable Update Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7cbfafe8-a3dd-4bc8-9e8d-5c4be0a203be",
+  "meta": {
+    "instanceId": "a69ec37954977b88a479ebfa185a30fc778ae1a13872bdbe9e26e7b8edafd875"
+  },
+  "id": "9GWfETglnZtOdGnx",
+  "tags": []
+}
