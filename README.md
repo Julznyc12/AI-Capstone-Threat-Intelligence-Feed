@@ -46,8 +46,8 @@ Here is a look at the final output dashboard where security analysts can review 
 | Name | Role / Component | GitHub Username |
 |------|-----------------|-----------------|
 | **Jesus Alvarez** | Component 1: Feed Collector | [@jesusalvarezaguilar0](https://github.com/jesusalvarezaguilar0) |
-| **Harry Yachimba** | Component 2: AI Summarizer & IOC Extractor | @HarryYachimba-ArmChairWarrior |
-| **Julian Silva-Erazo** | Component 3: Relevance Scorer | @Julznyc12 |
+| **Harry Yachimba** | Component 2: AI Summarizer & IOC Extractor | [@HarryYachimba-ArmChairWarrior](https://github.com/HarryYachimba-ArmChairWarrior) |
+| **Julian Silva-Erazo** | Component 3: Relevance Scorer | [@Julznyc12](https://github.com/Julznyc12) |
 | **Safayet Safin** | Component 4: Integration, Testing & Presentation | [@ChaosDragon01](https://github.com/ChaosDragon01) |
 
 ##  How to Run
