@@ -11,7 +11,7 @@ This project solves this problem by automating the collection, summarization, an
 
 ## Demo Video
 
-> **[Video](https://drive.google.com/file/d/1Ri6yilIOROs4CRzjRbA-s21MuIBuora_/view?usp=sharing)**
+> **[Video](https://drive.google.com/file/d/1hCIPi3MQyGrCqb7lLwhSj4BhpHNUHs8n/view?usp=sharing)**
 > *Our 2 to 3 minute demo covers the pipeline tour, robustness testing, system architecture, and final reflections.*
 
 ## 🏗️ Architecture Diagram
