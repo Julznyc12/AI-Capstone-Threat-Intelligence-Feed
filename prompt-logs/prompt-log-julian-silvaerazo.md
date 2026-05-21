@@ -53,107 +53,201 @@ I updated the README to match the exact Airtable schema and corrected several fi
 **What I learned:**  
 I learned that Copilot is very useful for generating documentation structure and workflow explanations quickly, but it still requires careful validation against the actual project implementation. Providing detailed project context and schema information significantly improves the quality of the generated outputs.
 ---
-### [2026-05-21] — Debugging the Checkpoint 2 Failure with Copilot
+### [2026-05-21] — Writing n8n Error Handling Logic with Copilot
 
 **Context:**
-I was troubleshooting a Checkpoint 2 end-to-end failure where the integration test was breaking during the final scoring and dashboard update step.
+I was implementing error handling for the n8n workflow that processes threat intelligence records into the relevance scorer. I needed robust handling for malformed payloads and API failures while preserving traceability for later debugging.
 
 **Prompt:**
-> Analyze this failure in our n8n + Airtable integration: the Checkpoint 2 end-to-end flow fails when writing a scored threat record, and the error mentions a field mismatch and invalid expression. Suggest likely causes and how to fix it.
+> Help me write n8n error handling logic to catch malformed record payloads, handle Flowise API failures gracefully, and route failed records for review. Include retry policies, logging, and how to preserve original input data for later inspection.
 
 **Result:**
-Copilot identified that the issue likely came from an Airtable field name mismatch between the Relevance Scoring table and the n8n write node. It also suggested validating the field names in both the automation and the scoring formula.
+Copilot suggested using a combination of n8n error triggers, conditional nodes, and a dedicated error-handling branch. It recommended:
+- catching exceptions from the Flowise request node
+- sending failed records to a separate error review Airtable table
+- using a retry loop with backoff for transient API errors
+- adding a JSON validation step before scoring
 
 **Evaluation:**
-The guidance was useful and matched the actual bug; I confirmed the field name mismatch and corrected the n8n node configuration.
+The generated logic helped me structure the error path and identify gaps in our current workflow. I had to adjust Copilot’s suggestions to match n8n’s actual node naming and our existing Airtable structure.
 
 **What I changed:**
-I updated the n8n workflow to use the exact Airtable field names and repaired the expression used to populate `current_status`.
+I replaced generic node names with our workflow’s actual node labels, and I simplified the decision logic so failed records are routed only if the payload fails validation or if the score service returns an unrecoverable error.
 
 **What I learned:**
-Copilot is good at pointing out likely integration issues when given the surrounding context of the error and the affected systems.
+Copilot can help design error handling patterns effectively, but its recommended implementation details still need to be aligned precisely with the platform’s node model and the project’s data schema.
 ---
 
-### [2026-05-22] — Fixing a Field Name Mismatch
+### [2026-05-21] — Designing the Confidence Routing Threshold
 
 **Context:**
-During field validation, I found that the Relevance Scoring table was using `relevance_level` but the scoring workflow still populated a field named `severity_level`.
+I needed to decide how to route relevance scores based on confidence and whether low-confidence records should go to a manual review queue or continue through the pipeline.
 
 **Prompt:**
-> Help me fix this Airtable field mismatch. The workflow currently writes `severity_level` into the scoring table, but the table schema uses `relevance_level`. Provide a corrected field mapping and a short checklist for schema alignment.
+> Help me design a confidence routing threshold for relevance scores. Recommend a threshold value and routing strategy for high confidence, low confidence, and uncertain records in our threat intelligence scoring pipeline.
 
 **Result:**
-Copilot provided a corrected mapping and a checklist emphasizing snake_case consistency, exact field names, and checking automation field references.
+Copilot recommended a three-tier routing strategy:
+- high confidence (score > 0.8) → auto-approve and publish
+- medium confidence (0.5–0.8) → flag for review but still include in downstream processing
+- low confidence (< 0.5) → route to manual review or quarantine
+
+It also suggested attaching a `confidence_reason` field to explain why a record was classified as low or medium confidence.
 
 **Evaluation:**
-The checklist helped me find one more indirect mismatch in the `matched_tech` mapping, and the field mapping advice prevented a future integration break.
+The suggestion was useful as a starting point, but I needed to refine the threshold bands to align with our data distribution and risk posture. I also clarified that `medium confidence` records should remain visible in the dashboard while still being highlighted for review.
 
 **What I changed:**
-I corrected the workflow mapping, renamed the field in the scoring payload, and added a quick schema alignment checklist to my project notes.
+I adjusted the bands to use `0.75` as the high-confidence cutoff and `0.4` as the low-confidence cutoff based on our initial relevance score histograms. I also documented the rationale in the workflow so the team can tune the threshold later.
 
 **What I learned:**
-Explicitly naming the exact schema fields and comparing them directly to the Airtable table structure avoids repeated integration failures.
+Copilot is helpful for framing routing strategies and generating rationale, though final thresholds must come from actual score distributions and team risk preferences.
 ---
 
-### [2026-05-23] — Generating Integration Test Data
+### [2026-05-21] — Generating Test Records for the Error Path
 
 **Context:**
-I needed realistic test data for the integration test covering ingestion, enrichment, scoring, and dashboard output.
+I wanted concrete test data that would exercise the error-handling branch in the scoring pipeline, especially malformed structured fields and missing required threat attributes.
 
 **Prompt:**
-> Generate 10 sample threat intelligence records for an end-to-end integration test. Include fields for `title`, `source`, `url`, `published_date`, `raw_summary`, `affected_software`, `attack_type`, `iocs`, `matched_tech`, and `relevance_reason`.
+> Generate test records that should trigger the n8n error path. Include examples of malformed JSON, missing required fields, invalid URL formats, and unsupported threat categories.
 
 **Result:**
-Copilot produced realistic cybersecurity threat examples with fields that matched our schema and included varied severity and relevance scenarios.
+Copilot produced several realistic test cases, including:
+- payloads missing `threat_type` or `source_url`
+- malformed `affected_products` JSON strings
+- invalid `confidence_score` values outside the expected numeric range
+- unsupported category labels like `unknown-threat`
 
 **Evaluation:**
-The generated test data saved time and helped uncover edge cases in the scoring logic, especially for threats with multiple matched technologies.
+The generated records were directly useful for building automated tests and manually validating the error branch. I had to sanitize a couple of examples where the JSON format was still valid but semantically wrong for our schema.
 
 **What I changed:**
-I adapted the generated examples into Airtable test records and used them to validate the end-to-end n8n flow.
+I converted the Copilot examples into Airtable import rows and added additional test cases for empty arrays and `null` values in required fields.
 
 **What I learned:**
-Copilot can rapidly create useful test dataset examples when prompts include the exact schema and expected field types.
+Copilot can rapidly generate useful test data variations, but I must always validate them against the actual schema constraints and processing logic.
 ---
 
-### [2026-05-24] — Debugging a Broken n8n Expression
+### [2026-05-21] — Debugging a Dashboard View Filter Expression
 
 **Context:**
-One of the n8n automation expressions used to calculate `current_status` was failing, causing the workflow to stop before writing the final scored data.
+I was troubleshooting a dashboard filter expression that was not returning expected low-confidence records in the review queue.
 
 **Prompt:**
-> Debug this n8n expression: it should set `current_status` to `scored` when scoring is complete, but the node returns an error and prevents the workflow from continuing. Suggest a corrected expression and explain why the original fails.
+> Debug this dashboard view filter expression: `AND({relevance_score} < 0.75, {status} != "archived", OR({confidence_status} = "low", {review_flag} = 1))`. Explain why it may be excluding the expected records.
 
 **Result:**
-Copilot explained the expression error and suggested a corrected version that evaluated the checkbox and text fields properly.
+Copilot explained that the `OR` condition can still fail if `confidence_status` is missing or if `review_flag` is not exactly numeric `1`. It suggested explicitly handling empty values and verifying field types in the filter.
 
 **Evaluation:**
-The fix worked immediately, and the workflow resumed successfully through the scoring-to-dashboard step.
+The insight was correct and led me to discover that some records had blank `confidence_status` values, causing the filter to exclude them even though `relevance_score` and `status` matched.
 
 **What I changed:**
-I replaced the broken expression with the corrected version and added a validation step to catch expression errors before the workflow runs.
+I updated the filter expression to include a fallback for missing confidence, and I cleaned the source data so `review_flag` was consistently stored as a number.
 
 **What I learned:**
-When debugging automation expressions, it's important to provide the exact node context and the expected output format to Copilot.
+Copilot can help debug logical filter expressions effectively, especially by pointing out hidden edge cases like blank field values and type mismatches.
 ---
 
-### [2026-05-25] — Re-running the Audit Prompt and Comparing Results
+### [2026-05-21] — Refining the Flowise Prompt for Relevance Scoring
 
 **Context:**
-After updates to the workflow and schema, I re-ran the audit prompt to compare results and confirm that the fixes were reflected in the project documentation.
+I was iterating on the Flowise prompt used to generate relevance scores for threat records. The model was returning inconsistent score distributions, so I needed help tightening the instruction set.
 
 **Prompt:**
-> Re-run the audit prompt for the Threat Intelligence Feed Dashboard project and compare the new results to the previous audit. Highlight any changes in the Current State, schema updates, and known issues.
+> Refine a scoring prompt for an LLM to assign a normalized relevance score between 0 and 1 for threat intelligence records. Emphasize technology stack matching, threat severity, and evidence strength.
 
 **Result:**
-Copilot produced a refreshed audit summary and noted the schema changes, Checkpoint 2 findings, and improved automation state.
+Copilot drafted a concise prompt that included:
+- clear scoring criteria and numeric range
+- examples of high/medium/low relevance scenarios
+- a requirement to justify scores with a short reason
+- a normalization step for all output values
 
 **Evaluation:**
-The new audit prompted me to document the latest project status and confirm that the current state description was accurate.
+The prompt was much stronger than the original version and helped reduce ambiguous results in early tests. I still needed to validate the exact output format against our parser.
 
 **What I changed:**
-I updated the project audit section in `copilot-instructions.md` with the current state and issue list, then saved the prompt log entry here.
+I added explicit instructions for the model to output JSON with `score`, `confidence`, and `reason` fields only. I also included a requirement to use `0.00`–`1.00` formatting.
 
 **What I learned:**
-Using Copilot to re-run audits after code or schema changes is a good way to keep project documentation aligned with actual progress.
+Copilot can help convert vague scoring requirements into a more disciplined LLM prompt, but the model’s output structure must still be enforced in the pipeline.
 ---
+
+### [2026-05-21] — Asking Copilot for API Retry Strategy and Rate Limit Handling
+
+**Context:**
+Our integration with external APIs occasionally hit transient failures and rate limits. I wanted a retry strategy that balanced reliability with not overloading the service.
+
+**Prompt:**
+> Suggest an API retry strategy for n8n that handles HTTP 429 rate limit responses and 5xx transient errors. Include recommended wait times, retry limits, and when to fail fast.
+
+**Result:**
+Copilot recommended:
+- exponential backoff for 5xx errors
+- a fixed delay after 429 responses using `Retry-After` when available
+- a maximum of 3 retries
+- failing immediately for 4xx errors other than 429
+
+**Evaluation:**
+The recommendations were well aligned with standard API best practices. I used them as the basis for our n8n retry node configuration.
+
+**What I changed:**
+I configured the workflow to inspect `Retry-After` headers and to stop retrying on invalid auth or bad request errors. I also logged all retries to our error review table.
+
+**What I learned:**
+Copilot can provide good retry heuristics, and it helps to turn those ideas into concrete workflow settings quickly.
+---
+
+### [2026-05-21] — Validating Dashboard Filter Behavior with Sample Records
+
+**Context:**
+After fixing the filter expression, I wanted to validate it with sample dashboard records to ensure the review queue included the intended low-confidence items.
+
+**Prompt:**
+> Create sample dashboard records that will test a view filter for `relevance_score < 0.75`, not archived, and low confidence or review flag set. Include records that should pass and fail.
+
+**Result:**
+Copilot generated six sample record descriptions covering:
+- low-score + low-confidence + not archived (should pass)
+- low-score + missing confidence_status + review_flag = 1 (should pass)
+- low-score + archived (should fail)
+- high-score + low-confidence (should fail)
+- low-score + blank review_flag (should fail unless confidence_status = low)
+- low-score + low-confidence + archived (should fail)
+
+**Evaluation:**
+The test cases were helpful to verify filter logic and to catch edge cases with blank fields. They also helped me confirm that the dashboard view should behave consistently.
+
+**What I changed:**
+I added these samples to our manual QA checklist and used them to confirm the filter after changing the query.
+
+**What I learned:**
+Copilot is useful for turning a logical condition into specific testing examples, especially when validating dashboard behavior.
+---
+
+### [2026-05-21] — Documenting the Manual Review Pipeline for Low-Confidence Records
+
+**Context:**
+I needed to document the manual review workflow so the team could understand how low-confidence threat records are handled once they leave the automatic scoring pipeline.
+
+**Prompt:**
+> Write a short step-by-step description of a manual review pipeline for records flagged as low-confidence. Include who should review them, what fields to inspect, and how to reclassify or archive them.
+
+**Result:**
+Copilot produced a practical review workflow that included:
+- triage by the analyst team
+- inspecting `relevance_reason`, `confidence_reason`, and `matched_tech`
+- checking source URLs and threat evidence
+- editing `review_flag`, `confidence_status`, and `status`
+- archiving false positives
+
+**Evaluation:**
+The draft was a solid foundation for our team guide. I tailored it further to our actual Airtable field names and review responsibilities.
+
+**What I changed:**
+I renamed generic field references to our specific columns and added a note to preserve original raw payloads for audit purposes.
+
+**What I learned:**
+Copilot can accelerate documentation of operational processes, but the final version needs to reflect the real team roles and data model.
