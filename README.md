@@ -38,7 +38,7 @@ The project is broken down into four key components. You can explore the detaile
 Here is a look at the final output dashboard where security analysts can review prioritized threats, AI summaries, and extracted IOCs.
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/d55be9e4-a9d5-421c-892b-d01d143cb52b" alt="Integration Testing and Presentation Dashboard" width="800">
+  <img src="https://github.com/jesusalvarezaguilar0/ai-capstone-threat-intelligence-feed-dashboard/blob/main/folder-components/component-4-integration-testing-and-presentation/image.png?raw=true" alt="Integration Testing and Presentation Dashboard" width="800">
 </div>
 
 ## Team Member Profiles
